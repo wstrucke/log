@@ -1,0 +1,243 @@
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(64) NULL,
+  `first` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  `last` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  `email` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  `last_login` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+  `timezone_id` BIGINT(20) UNSIGNED NOT NULL DEFAULT '4',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username_idx` (`username`)
+  ) ENGINE=INNODB CHARACTER SET latin1 COLLATE latin1_bin;
+
+INSERT INTO `user` (`username`, `last_login`) VALUES ('admin', NULL), ('guest', NULL);
+
+CREATE TABLE IF NOT EXISTS `log` (
+  `group` VARCHAR(10) NOT NULL DEFAULT 'WL',
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT(20) UNSIGNED,
+  `user_ip` INT UNSIGNED NULL,
+  `guest_name` VARCHAR(64) NULL,
+  `posted` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `api` TINYINT(1) UNSIGNED NOT NULL DEFAULT '0',
+  `notification` TINYINT(1) NOT NULL DEFAULT '0',
+  `start_date` DATETIME NULL,
+  `end_date` DATETIME NULL,
+  `jira` VARCHAR(255) NULL,
+  `parent` VARCHAR(50) NULL,
+  `type` VARCHAR(25) NOT NULL,
+  `cc` VARCHAR(255) NULL,
+  `subject` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  `detail` LONGTEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`group`,`id`),
+  FOREIGN KEY `user_ref` (`user_id`) REFERENCES `user` (`id`)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX `id_idx` (`id`),
+  INDEX `jira_idx` (`jira`),
+  INDEX `type_idx` (`type`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `log_map` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `ref_group` VARCHAR(10) NOT NULL,
+  `ref_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `ref_ref` (`ref_group`, `ref_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `log_notification` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `status` VARCHAR(6) NOT NULL DEFAULT 'new',
+  `severity` VARCHAR(20) NOT NULL,
+  `category` VARCHAR(255) NULL,
+  `manager` VARCHAR(128) NOT NULL,
+  `duration` MEDIUMINT UNSIGNED NOT NULL DEFAULT '0',
+  `downtime` MEDIUMINT UNSIGNED NOT NULL DEFAULT '0',
+  `cause` VARCHAR(20) NOT NULL,
+  `next_update` TINYINT(3) UNSIGNED NULL,
+  `sms` VARCHAR(160) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX `status_idx` (`status`),
+  INDEX `severity_idx` (`severity`),
+  INDEX `category_idx` (`category`),
+  INDEX `manager_idx` (`manager`),
+  INDEX `cause_idx` (`cause`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `service` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  `owner` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  PRIMARY KEY (`id`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_swedish_ci;
+
+CREATE TABLE IF NOT EXISTS `log_service_map` (
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `service_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`log_id`, `service_id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `service_ref` (`service_id`) REFERENCES `service` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `system` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  `owner` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL,
+  PRIMARY KEY (`id`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_swedish_ci;
+
+CREATE TABLE IF NOT EXISTS `log_system_map` (
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `system_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`log_id`, `system_id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `system_ref` (`system_id`) REFERENCES `system` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `environment` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  PRIMARY KEY (`id`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_swedish_ci;
+
+CREATE TABLE IF NOT EXISTS `log_environment_map` (
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `environment_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`log_id`, `environment_id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `environment_ref` (`environment_id`) REFERENCES `environment` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `region` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL,
+  PRIMARY KEY (`id`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_swedish_ci;
+
+CREATE TABLE IF NOT EXISTS `log_region_map` (
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `region_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`log_id`, `region_id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `region_ref` (`region_id`) REFERENCES `region` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `team` (
+  `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL ,
+  PRIMARY KEY (`id`)
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_swedish_ci;
+
+CREATE TABLE IF NOT EXISTS `log_team_map` (
+  `log_group` VARCHAR(10) NOT NULL,
+  `log_id` BIGINT(20) UNSIGNED NOT NULL,
+  `team_id` BIGINT(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`log_id`, `team_id`),
+  FOREIGN KEY `log_ref` (`log_group`, `log_id`) REFERENCES `log` (`group`, `id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY `team_ref` (`team_id`) REFERENCES `team` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+  )
+ENGINE=INNODB
+CHARACTER SET latin1
+COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `session` (
+  `id` VARCHAR(128) NOT NULL,
+  `data` MEDIUMTEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `expires` INTEGER NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=INNODB CHARACTER SET latin1 COLLATE latin1_bin;
+
+CREATE TABLE IF NOT EXISTS `timezone` (
+  `id` BIGINT(20) UNSIGNED NOT NULL,
+  `name` VARCHAR(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_idx` (`name`)
+) ENGINE=INNODB CHARACTER SET latin1 COLLATE latin1_bin;
+
+INSERT INTO `timezone` (`id`, `name`)
+VALUES
+  (1, 'Europe/Moscow'),
+  (2, 'Europe/Minsk'),
+  (3, 'Europe/Amsterdam'),
+  (4, 'Europe/London'),
+  (5, 'America/New_York'),
+  (6, 'America/Chicago'),
+  (7, 'America/Denver'),
+  (8, 'America/Phoenix'),
+  (9, 'America/Los_Angeles'),
+  (10, 'America/Anchorage'),
+  (11, 'America/Adak'),
+  (12, 'Pacific/Honolulu');
+
+CREATE TABLE IF NOT EXISTS `settings` (
+  `name` VARCHAR(64) NOT NULL,
+  `value` VARCHAR(128) NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=INNODB CHARACTER SET latin1 COLLATE latin1_bin;
+
+INSERT INTO `settings` (`name`, `value`)
+VALUES
+  ('domain', '127.0.0.1'),
+  ('jira_url', 'https://jira.example.com/jira/browse/'),
+  ('ssl', '0'),
+  ('timezone', 'Europe/London');
